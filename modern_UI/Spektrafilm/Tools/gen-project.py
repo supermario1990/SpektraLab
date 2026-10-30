@@ -270,8 +270,15 @@ def build() -> str:
         "SWIFT_STRICT_CONCURRENCY": "complete",
         "MACOSX_DEPLOYMENT_TARGET": MACOS,
         "SDKROOT": "macosx",
-        "ARCHS": "arm64",
-        "ONLY_ACTIVE_ARCH": "YES",
+        # universal binary: arm64 + x86_64, so the same artefact runs on
+        # Apple silicon *and* Intel Macs (macOS 15+ has Metal on both).
+        # $(ARCHS_STANDARD) is the Xcode built-in that expands to the
+        # architecture set the current SDK ships with; spelling it out here
+        # keeps the intent explicit in the pbxproj.
+        "ARCHS": "arm64 x86_64",
+        # Debug builds override this to YES (host arch only, fast iteration).
+        # Release ships the full universal binary -- see `release_cfg` below.
+        "ONLY_ACTIVE_ARCH": "NO",
         "CODE_SIGN_STYLE": "Manual" if TEAM_ID else "Automatic",
         "CODE_SIGN_IDENTITY": f'"{SIGN_IDENTITY}"',
         "DEVELOPMENT_TEAM": f'"{TEAM_ID}"',
@@ -323,7 +330,9 @@ def build() -> str:
     # the Debug app was judged by that; Swift stays -Onone for debugging.
     debug = {"SWIFT_OPTIMIZATION_LEVEL": '"-Onone"', "DEBUG_INFORMATION_FORMAT": "dwarf",
              "ENABLE_TESTABILITY": "YES", "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "DEBUG",
-             "GCC_OPTIMIZATION_LEVEL": "2"}
+             "GCC_OPTIMIZATION_LEVEL": "2",
+             # Debug: host arch only, for fast iteration. Release is universal.
+             "ONLY_ACTIVE_ARCH": "YES"}
     release = {"SWIFT_OPTIMIZATION_LEVEL": '"-O"', "DEBUG_INFORMATION_FORMAT": '"dwarf-with-dsym"',
                "SWIFT_COMPILATION_MODE": "wholemodule"}
 
